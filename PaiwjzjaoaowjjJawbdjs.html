@@ -8,9 +8,7 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const fromLootlabs = urlParams.get('from') === 'lootlabs';
-    const lastAccess = localStorage.getItem("lastLootlabsAccess");
 
-    // Save current time if user came from lootlabs
     if (fromLootlabs) {
       localStorage.setItem("lastLootlabsAccess", now.toString());
     }
@@ -23,33 +21,31 @@
           window.location.replace(redirectURL);
         })
         .catch(error => {
-          document.body.innerHTML = "<h1 style='color:red; text-align:center;'>Error loading key.</h1>";
+          document.body.innerHTML = "<h1 style='color:red; text-align:center;'>❌ Error loading key.</h1>";
         });
     }
 
     window.onload = () => {
-      if (fromLootlabs) {
-        // Just came from lootlabs, save time but wait before allowing
-        document.body.innerHTML = "<h1 style='text-align:center;'>⏳ Please wait 2 minutes before accessing.</h1>";
+      const lastAccess = parseInt(localStorage.getItem("lastLootlabsAccess"));
+
+      if (!lastAccess) {
+        // ❌ No record: send to LootLabs
+        window.location.href = "https://loot-link.com/s?XtizPfMG";
         return;
       }
 
-      if (lastAccess) {
-        const elapsed = now - parseInt(lastAccess);
+      const elapsed = now - lastAccess;
 
-        if (elapsed >= minWait && elapsed <= maxWait) {
-          // ✅ Access within valid window
-          getIDAndRedirect();
-        } else if (elapsed < minWait) {
-          // ❌ Too early
-          document.body.innerHTML = "<h1 style='color:orange; text-align:center;'>⏱️ Too early! Wait at least 2 minutes after LootLabs.</h1>";
-        } else {
-          // ❌ Too late
-          localStorage.removeItem("lastLootlabsAccess");
-          window.location.href = "https://loot-link.com/s?XtizPfMG";
-        }
+      if (elapsed >= minWait && elapsed <= maxWait) {
+        // ✅ Within allowed window
+        getIDAndRedirect();
+      } else if (elapsed < minWait) {
+        // ⏳ Too early
+        const secondsLeft = Math.ceil((minWait - elapsed) / 1000);
+        document.body.innerHTML = `<h1 style='color:orange; text-align:center;'>⏱️ Too early! Wait ${secondsLeft} more seconds.</h1>`;
       } else {
-        // ❌ No lootlabs record, force them to visit
+        // ⏲️ Too late
+        localStorage.removeItem("lastLootlabsAccess");
         window.location.href = "https://loot-link.com/s?XtizPfMG";
       }
     };
