@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script>
+    const now = Date.now();
+    const minWait = 2 * 60 * 1000;    // 2 minutes
+    const maxWait = 30 * 60 * 1000;   // 30 minutes
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromLootlabs = urlParams.get('from') === 'lootlabs';
+    const lastAccess = localStorage.getItem("lastLootlabsAccess");
+
+    // Save current time if user came from lootlabs
+    if (fromLootlabs) {
+      localStorage.setItem("lastLootlabsAccess", now.toString());
+    }
+
+    function getIDAndRedirect() {
+      fetch("https://raw.githubusercontent.com/MADNESSTEST/need/main/new.txt")
+        .then(response => response.text())
+        .then(id => {
+          const redirectURL = "https://gist.githubusercontent.com/MADNESSTEST/d79fc2de8ea72154953a21b769a4be1c/raw/" + id + "/key";
+          window.location.replace(redirectURL);
+        })
+        .catch(error => {
+          document.body.innerHTML = "<h1 style='color:red; text-align:center;'>Error loading key.</h1>";
+        });
+    }
+
+    window.onload = () => {
+      if (fromLootlabs) {
+        // Just came from lootlabs, save time but wait before allowing
+        document.body.innerHTML = "<h1 style='text-align:center;'>⏳ Please wait 2 minutes before accessing.</h1>";
+        return;
+      }
+
+      if (lastAccess) {
+        const elapsed = now - parseInt(lastAccess);
+
+        if (elapsed >= minWait && elapsed <= maxWait) {
+          // ✅ Access within valid window
+          getIDAndRedirect();
+        } else if (elapsed < minWait) {
+          // ❌ Too early
+          document.body.innerHTML = "<h1 style='color:orange; text-align:center;'>⏱️ Too early! Wait at least 2 minutes after LootLabs.</h1>";
+        } else {
+          // ❌ Too late
+          localStorage.removeItem("lastLootlabsAccess");
+          window.location.href = "https://loot-link.com/s?u2kG";
+        }
+      } else {
+        // ❌ No lootlabs record, force them to visit
+        window.location.href = "https://loot-link.com/s?u2kG";
+      }
+    };
+  </script>
+</head>
+<body>
+</body>
+</html>
