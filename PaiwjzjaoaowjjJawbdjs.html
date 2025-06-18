@@ -1,52 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <title>Verifying Loot-Link Access</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #121212;
+      color: white;
+      text-align: center;
+      padding-top: 100px;
+    }
+    #timer {
+      font-size: 28px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="status">🔐 Verifying access...</h1>
+  <div id="timer"></div>
+
   <script>
-    const minWait = 1.5 * 60 * 1000;   // 1 minute 30 seconds
-    const maxWait = 30 * 60 * 1000;    // 30 minutes
+    const minWait = 1.5 * 60 * 1000; // 1 minute 30 seconds
+    const maxWait = 30 * 60 * 1000;  // 30 minutes
+    const lootLinkURL = "https://loot-link.com/s?0O7GJnsT";
 
     const urlParams = new URLSearchParams(window.location.search);
-    const fromLootlabs = urlParams.get('from') === 'lootlabs';
+    const fromLoot = urlParams.get('from') === 'loot-link';
 
-    if (fromLootlabs) {
-      localStorage.setItem("lastLootlabsAccess", Date.now().toString());
+    if (fromLoot) {
+      localStorage.setItem("lastLootLinkTime", Date.now().toString());
     }
 
-    function getIDAndRedirect() {
+    const lastAccess = parseInt(localStorage.getItem("lastLootLinkTime"));
+    const now = Date.now();
+
+    if (!lastAccess) {
+      window.location.href = lootLinkURL;
+    } else {
+      const elapsed = now - lastAccess;
+
+      if (elapsed > maxWait) {
+        localStorage.removeItem("lastLootLinkTime");
+        window.location.href = lootLinkURL;
+      } else if (elapsed >= minWait) {
+        redirectToKey();
+      } else {
+        const remaining = minWait - elapsed;
+        startCountdown(remaining);
+      }
+    }
+
+    function startCountdown(ms) {
+      const status = document.getElementById("status");
+      const timerDiv = document.getElementById("timer");
+      status.innerText = "⏳ Please wait...";
+
+      const endTime = Date.now() + ms;
+
+      const interval = setInterval(() => {
+        const now = Date.now();
+        const timeLeft = endTime - now;
+
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          status.innerText = "✅ Redirecting now...";
+          timerDiv.innerText = "";
+          redirectToKey();
+        } else {
+          const seconds = Math.ceil(timeLeft / 1000);
+          timerDiv.innerText = `Redirecting in: ${seconds}s`;
+        }
+      }, 1000);
+    }
+
+    function redirectToKey() {
       fetch("https://raw.githubusercontent.com/MADNESSTEST/need/main/new.txt")
         .then(response => response.text())
         .then(id => {
           const redirectURL = "https://gist.githubusercontent.com/MADNESSTEST/d79fc2de8ea72154953a21b769a4be1c/raw/" + id + "/key";
           window.location.replace(redirectURL);
         })
-        .catch(error => {
-          document.body.innerHTML = "<h1 style='color:red; text-align:center;'>❌ Error loading key.</h1>";
+        .catch(() => {
+          document.body.innerHTML = "<h1 style='color:red;'>❌ Failed to load key.</h1>";
         });
     }
-
-    window.onload = () => {
-      const now = Date.now();
-      const lastAccess = parseInt(localStorage.getItem("lastLootlabsAccess"));
-
-      if (!lastAccess) {
-        window.location.href = "https://loot-link.com/s?XtizPfMG";
-        return;
-      }
-
-      const elapsed = now - lastAccess;
-
-      if (elapsed >= minWait && elapsed <= maxWait) {
-        getIDAndRedirect();
-      } else if (elapsed < minWait) {
-        const secondsLeft = Math.ceil((minWait - elapsed) / 1000);
-        document.body.innerHTML = `<h1 style='color:orange; text-align:center;'>⏱️ Too early! Wait ${secondsLeft} more seconds.</h1>`;
-      } else {
-        localStorage.removeItem("lastLootlabsAccess");
-        window.location.href = "https://loot-link.com/s?XtizPfMG";
-      }
-    };
   </script>
-</head>
-<body>
 </body>
 </html>
